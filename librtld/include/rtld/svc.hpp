@@ -19,7 +19,7 @@ struct MemoryInfo {
     uint32_t padding;
 };
 
-_Static_assert(sizeof(MemoryInfo) == 0x28, "MemoryInfo size isn't valid");
+static_assert(sizeof(MemoryInfo) == 0x28, "MemoryInfo size isn't valid");
 
 Result QueryMemory(MemoryInfo *memory_info_ptr, uint32_t *pageinfo,
                    uintptr_t addr);

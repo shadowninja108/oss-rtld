@@ -10,7 +10,7 @@ struct ApplicationName {
 };
 
 __attribute__((section(".rodata.application_name")))
-ApplicationName application_name = {
+const ApplicationName application_name = {
     .unknown = 0, .name_lengh = APPLICATION_NAME_LEN, .name = APPLICATION_NAME};
 
 extern "C" void __rtld_start_app(Handle thread_handle,
