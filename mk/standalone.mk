@@ -28,7 +28,7 @@ lib$(BASE_NAME)/lib$(NAME)-6xx.a:
 clean-lib$(BASE_NAME):
 	make -C lib$(BASE_NAME) -f Makefile.$(ARCH) clean
 
-clean: clean_compiler-rt clean-normal-objects clean-6xx-objects clean-lib$(BASE_NAME) clean-standalone
+clean: clean-normal-objects clean-6xx-objects clean-lib$(BASE_NAME) clean-standalone
 
 # inspired by libtransistor-base makefile
 
@@ -57,8 +57,6 @@ export CC_FOR_TARGET = $(CC)
 export RANLIB_FOR_TARGET = $(RANLIB)
 export CFLAGS_FOR_TARGET = $(CC_FLAGS) -Wno-unused-command-line-argument -Wno-error-implicit-function-declaration
 export TARGET_TRIPLET
-
-include mk/compiler-rt.mk
 
 %.a:
 	@rm -f $@

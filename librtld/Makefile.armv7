@@ -1,5 +1,6 @@
 ARCH := armv7
 COMPILER_RT_ARCH := armhf
+
 TARGET_TRIPLET = armv7l-none-linux-gnueabihf
 CC_ARCH := -march=armv7-a -mfloat-abi=hard
 
