@@ -1,3 +1,5 @@
+include $(DEVKITPRO)/devkitARM/base_tools
+
 ARCH := armv7
 COMPILER_RT_ARCH := armhf
 TARGET_TRIPLET = armv7l-none-linux-gnueabihf

@@ -7,8 +7,6 @@ SRC_DIR =
 BUILD_DIR := $(SOURCE_ROOT)/build/$(ARCH)
 BUILD_DIR_6XX := $(SOURCE_ROOT)/build/$(ARCH)-6xx
 
-# see https://github.com/MegatonHammer/linkle
-LINKLE = linkle
 
 all: $(NAME).nso $(NAME)-6xx.nso
 
@@ -21,37 +19,13 @@ lib$(BASE_NAME)/lib$(NAME)-6xx.a:
 clean-lib$(BASE_NAME):
 	make -C lib$(BASE_NAME) -f Makefile.$(ARCH) clean
 
-clean: clean_compiler-rt clean-normal-objects clean-6xx-objects clean-lib$(BASE_NAME) clean-standalone
+clean: clean-normal-objects clean-6xx-objects clean-lib$(BASE_NAME) clean-standalone
 
-# inspired by libtransistor-base makefile
-
-# start llvm programs
-
-# On MacOS, brew refuses to install clang5/llvm5 in a global place. As a result,
-# they have to muck around with changing the path, which sucks.
-# Let's make their lives easier by asking brew where LLVM_CONFIG is.
-ifeq ($(shell uname -s),Darwin)
-    ifeq ($(shell brew --prefix llvm),)
-        $(error need llvm installed via brew)
-    else
-        LLVM_CONFIG := $(shell brew --prefix llvm)/bin/llvm-config
-    endif
-else
-    LLVM_CONFIG := llvm-config$(LLVM_POSTFIX)
+ifeq ($(strip $(DEVKITPRO)),)
+$(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
 endif
 
-LLVM_BINDIR := $(shell $(LLVM_CONFIG) --bindir)
-ifeq ($(LLVM_BINDIR),)
-  $(error llvm-config needs to be installed)
-endif
-
-LD := $(LLVM_BINDIR)/ld.lld
-CC := $(LLVM_BINDIR)/clang
-CXX := $(LLVM_BINDIR)/clang++
-AS := $(LLVM_BINDIR)/llvm-mc
-AR := $(LLVM_BINDIR)/llvm-ar
-RANLIB := $(LLVM_BINDIR)/llvm-ranlib
-# end llvm programs
+export LD	:= $(PREFIX)ld
 
 SRC_DIR = $(SOURCE_ROOT)/source $(SOURCE_ROOT)/source/$(ARCH)
 
@@ -59,14 +33,14 @@ export VPATH := $(foreach dir,$(SRC_DIR),$(dir))
 
 # For compiler-rt and the app, we need some system headers + rtld headers
 SYS_INCLUDES := -isystem $(realpath $(SOURCE_ROOT))/include/ -isystem $(realpath $(SOURCE_ROOT))/lib$(BASE_NAME)/include -isystem $(realpath $(SOURCE_ROOT))/lib$(BASE_NAME)/misc/$(ARCH) -isystem $(realpath $(SOURCE_ROOT))/lib$(BASE_NAME)/misc/system/include
-CC_FLAGS := -fuse-ld=lld -fno-stack-protector -target $(TARGET_TRIPLET) $(CC_ARCH) -fPIC -nostdlib -nostdlibinc $(SYS_INCLUDES) -Wno-unused-command-line-argument -Wall -Wextra -O2 -ffunction-sections -fdata-sections
-CXX_FLAGS := $(CC_FLAGS) -std=c++17 -stdlib=libc++ -nodefaultlibs -nostdinc++ -fno-rtti -fomit-frame-pointer -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables
+CC_FLAGS := -fno-stack-protector $(CC_ARCH) -fPIC -nostdlib $(SYS_INCLUDES) -Wno-unused-command-line-argument -Wall -Wextra -O2 -ffunction-sections -fdata-sections
+CXX_FLAGS := $(CC_FLAGS) -std=c++17 -nodefaultlibs -nostdinc++ -fno-rtti -fomit-frame-pointer -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables
 AR_FLAGS := rcs
-AS_FLAGS := $(AS_ARCH)
+AS_FLAGS := 
 
 # required compiler-rt definitions
 LIB_COMPILER_RT_PATH := $(BUILD_DIR)/lib
-LIB_COMPILER_RT_BUILTINS := $(LIB_COMPILER_RT_PATH)/libclang_rt.builtins-$(COMPILER_RT_ARCH).a
+LIB_COMPILER_RT_BUILTINS :=
 
 # 
 # for compatiblity
@@ -87,7 +61,7 @@ export RANLIB_FOR_TARGET = $(RANLIB)
 export CFLAGS_FOR_TARGET = $(CC_FLAGS) -Wno-unused-command-line-argument -Wno-error-implicit-function-declaration
 export TARGET_TRIPLET
 
-include mk/compiler-rt.mk
+#include mk/compiler-rt.mk
 
 %.a:
 	@rm -f $@
@@ -141,21 +115,20 @@ LD_FLAGS := \
             -z text \
             --build-id=sha1 \
             -L$(LIB_COMPILER_RT_PATH) \
-            -lclang_rt.builtins-$(COMPILER_RT_ARCH) \
             -L$(SOURCE_ROOT)/lib$(BASE_NAME)
 
 $(BUILD_DIR_6XX)/$(NAME).elf: $(BUILD_DIR_6XX) $(OBJECTS_6XX) $(LIB_COMPILER_RT_BUILTINS) lib$(BASE_NAME)/lib$(NAME)-6xx.a
 	$(LD) $(LD_FLAGS) -l$(NAME)-6xx -o $@ $(OBJECTS_6XX)
 
 $(NAME)-6xx.nso: $(BUILD_DIR_6XX)/$(NAME).elf
-	$(LINKLE) nso $< $@
+	elf2nso  $< $@
 
 $(BUILD_DIR)/$(NAME).elf: $(BUILD_DIR) $(OBJECTS_NORMAL) $(LIB_COMPILER_RT_BUILTINS) lib$(BASE_NAME)/lib$(NAME).a
 	$(LD) $(LD_FLAGS) -l$(NAME) -o $@ $(OBJECTS_NORMAL)
 
 $(NAME).nso: $(BUILD_DIR)/$(NAME).elf
 	echo $(CURDIR)
-	$(LINKLE) nso $< $@
+	elf2nso  $< $@
 
 clean-standalone:
 	rm -rf $(BUILD_DIR_6XX)/$(NAME).elf $(NAME)-6xx.nso $(BUILD_DIR)/$(NAME).elf $(NAME).nso

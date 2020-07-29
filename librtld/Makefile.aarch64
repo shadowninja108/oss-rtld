@@ -1,3 +1,5 @@
+include $(DEVKITPRO)/libnx/switch_rules
+
 ARCH := aarch64
 COMPILER_RT_ARCH := $(ARCH)
 
