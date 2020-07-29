@@ -1,3 +1,7 @@
+ifeq ($(strip $(DEVKITPRO)),)
+$(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
+endif
+
 SOURCE_ROOT = $(CURDIR)
 LIB_ROOT = $(SOURCE_ROOT)/lib$(BASE_NAME)/
 BASE_NAME = rtld
@@ -20,11 +24,6 @@ clean-lib$(BASE_NAME):
 	make -C lib$(BASE_NAME) -f Makefile.$(ARCH) clean
 
 clean: clean-normal-objects clean-6xx-objects clean-lib$(BASE_NAME) clean-standalone
-
-ifeq ($(strip $(DEVKITPRO)),)
-$(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
-endif
-
 export LD	:= $(PREFIX)ld
 
 SRC_DIR = $(SOURCE_ROOT)/source $(SOURCE_ROOT)/source/$(ARCH)

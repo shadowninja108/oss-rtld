@@ -1,3 +1,7 @@
+ifeq ($(strip $(DEVKITPRO)),)
+$(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
+endif
+
 SOURCE_ROOT = $(CURDIR)/
 NAME = librtld-$(ARCH)
 SRC_DIR = $(SOURCE_ROOT)/source $(SOURCE_ROOT)/source/$(ARCH)
@@ -9,13 +13,6 @@ all: $(SOURCE_ROOT)/$(NAME).a $(SOURCE_ROOT)/$(NAME)-6xx.a
 
 clean: clean-normal-objects clean-6xx-objects
 	rm -rf $(NAME).a $(NAME)-6xx.a $(BUILD_DIR) $(BUILD_DIR_6XX)
-
-ifeq ($(strip $(DEVKITPRO)),)
-$(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
-endif
-
-TOPDIR ?= $(CURDIR)
-include $(DEVKITPRO)/libnx/switch_rules
 
 export LD	:= $(PREFIX)ld
 
@@ -48,7 +45,6 @@ $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
 $(BUILD_DIR)/%.o: %.s
-	echo "$(AS) $(AS_FLAGS) $@ $<" 
 	$(AS) $(AS_FLAGS) -o $@ $<
 
 $(BUILD_DIR)/%.o: %.c
