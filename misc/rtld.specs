@@ -1,0 +1,7 @@
+%rename link                old_link
+
+*link:
+%(old_link) -T %:getenv(SOURCE_ROOT /misc/aarch64/application.ld) --shared --discard-all --strip-all --version-script=%:getenv(SOURCE_ROOT /exported.txt) -init=__rtld_init -fini=__rtld_fini --gc-sections -z text --build-id=sha1
+
+*startfile:
+crti%O%s crtbegin%O%s

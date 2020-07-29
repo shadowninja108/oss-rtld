@@ -7,13 +7,14 @@ PHDRS
   text PT_LOAD FLAGS(5);
   rodata PT_LOAD FLAGS(4);
   data PT_LOAD FLAGS(6);
-  bss PT_LOAD FLAGS(6);
   dynamic PT_DYNAMIC;
 }
 
 SECTIONS
 {
-  . = 0;
+  PROVIDE(__start__ = 0x0);
+  . = __start__;
+  __code_start__ = .;
 
   /* App code */
   .text : {
@@ -25,6 +26,7 @@ SECTIONS
 
   /* Trampoline and stuffs */
   .plt : { *(.plt .plt.*) } :text
+  __code_end__ = .;
 
   /* Read-only sections */
   . = ALIGN(0x1000);
@@ -75,9 +77,9 @@ SECTIONS
   /* All exception handling sections */
   .gcc_except_table : { *(.gcc_except_table .gcc_except_table.*) } :rodata
   .eh_frame_hdr : {
-    __eh_frame_hdr_start__ = .;
+    HIDDEN(__eh_frame_hdr_start__ = .);
     *(.eh_frame_hdr)
-    __eh_frame_hdr_end__ = .;
+    HIDDEN(__eh_frame_hdr_end__ = .);
   } :rodata
   .eh_frame : { KEEP (*(.eh_frame)) } :rodata
 
@@ -105,7 +107,9 @@ SECTIONS
   } :data
 
   /* All GOT sections */
+  __got_start__ = .;
   .got : { *(.got.plt) *(.igot.plt) *(.got) *(.igot) } :data
+  __got_end__ = .;
 
   /* The dynamic section as we need it to be stored in the binary */
   .dynamic : {
@@ -116,27 +120,44 @@ SECTIONS
   /* Align for .init_array/.fini_array */
   . = ALIGN(8);
 
+  .preinit_array ALIGN(8) :
+  {
+    PROVIDE (__preinit_array_start__ = .);
+    KEEP (*(.preinit_array))
+    PROVIDE (__preinit_array_end__ = .);
+  } :data
+
   /* App init array */
   .init_array : {
+    PROVIDE (__init_array_start__ = .);
     KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*)))
     KEEP (*(.init_array))
+    PROVIDE (__init_array_end__ = .);
   } :data
 
   /* App fini array */
   .fini_array : {
+    PROVIDE (__fini_array_start__ = .);
     KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*)))
     KEEP (*(.fini_array))
+    PROVIDE (__fini_array_end__ = .);
   } :data
 
   /* Thread Local sections */
 
   .tdata : {
+    __tdata_align_abs__ = ABSOLUTE(.);
+    __tdata_start__ = .;
     *(.tdata .tdata.*)
+    __tdata_end__ = .;
   } :data
 
   .tbss : {
+    __tbss_align_abs__ = ABSOLUTE(.);
+    __tbss_start__ = .;
     *(.tbss .tbss.*)
     *(.tcommon)
+    __tbss_end__ = .;
   } :data
 
   /* BSS section */
@@ -149,9 +170,11 @@ SECTIONS
     . = ALIGN(8);
     HIDDEN(__bss_end__ = .);
     . = ALIGN(0x1000);
-  } :bss
+  } :data
 
-  __argdata__ = .;
+  __end__ = ABSOLUTE(.);
+
+  HIDDEN(__argdata__ = .);
 
   /DISCARD/ : {
     /* No need of the interpreter */

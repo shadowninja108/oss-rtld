@@ -2,7 +2,7 @@ ifeq ($(strip $(DEVKITPRO)),)
 $(error "Please set DEVKITPRO in your environment. export DEVKITPRO=<path to>/devkitpro")
 endif
 
-SOURCE_ROOT = $(CURDIR)
+export SOURCE_ROOT = $(CURDIR)
 LIB_ROOT = $(SOURCE_ROOT)/lib$(BASE_NAME)/
 BASE_NAME = rtld
 NAME = $(BASE_NAME)-$(ARCH)
@@ -24,15 +24,15 @@ clean-lib$(BASE_NAME):
 	make -C lib$(BASE_NAME) -f Makefile.$(ARCH) clean
 
 clean: clean-normal-objects clean-6xx-objects clean-lib$(BASE_NAME) clean-standalone
-export LD	:= $(PREFIX)ld
+export LD	:= $(CXX)
 
 SRC_DIR = $(SOURCE_ROOT)/source $(SOURCE_ROOT)/source/$(ARCH)
 
 export VPATH := $(foreach dir,$(SRC_DIR),$(dir))
 
-# For compiler-rt and the app, we need some system headers + rtld headers
+# For the app, we need some system headers + rtld headers
 SYS_INCLUDES := -isystem $(realpath $(SOURCE_ROOT))/include/ -isystem $(realpath $(SOURCE_ROOT))/lib$(BASE_NAME)/include -isystem $(realpath $(SOURCE_ROOT))/lib$(BASE_NAME)/misc/$(ARCH) -isystem $(realpath $(SOURCE_ROOT))/lib$(BASE_NAME)/misc/system/include
-CC_FLAGS := -fno-stack-protector $(CC_ARCH) -fPIC -nostdlib $(SYS_INCLUDES) -Wno-unused-command-line-argument -Wall -Wextra -O2 -ffunction-sections -fdata-sections
+CC_FLAGS := -fno-stack-protector $(CC_ARCH) -fPIC -nostartfiles $(SYS_INCLUDES) -Wno-unused-command-line-argument -Wall -Wextra -O2 -ffunction-sections -fdata-sections
 CXX_FLAGS := $(CC_FLAGS) -std=c++17 -nodefaultlibs -nostdinc++ -fno-rtti -fomit-frame-pointer -fno-exceptions -fno-asynchronous-unwind-tables -fno-unwind-tables
 AR_FLAGS := rcs
 AS_FLAGS := 
@@ -60,7 +60,6 @@ export RANLIB_FOR_TARGET = $(RANLIB)
 export CFLAGS_FOR_TARGET = $(CC_FLAGS) -Wno-unused-command-line-argument -Wno-error-implicit-function-declaration
 export TARGET_TRIPLET
 
-#include mk/compiler-rt.mk
 
 %.a:
 	@rm -f $@
@@ -105,14 +104,7 @@ $(BUILD_DIR_6XX)/%.o: %.cpp
 	$(CXX) $(CXX_FLAGS) $(DEFINE_6XX) -o $@ -c $<
 
 LD_FLAGS := \
-            --version-script=$(SOURCE_ROOT)/exported.txt \
-            --shared \
-            --gc-sections \
-            -T $(SOURCE_ROOT)/misc/$(ARCH)/application.ld \
-            -init=__rtld_init \
-            -fini=__rtld_fini \
-            -z text \
-            --build-id=sha1 \
+			-specs=$(SOURCE_ROOT)/misc/rtld.specs \
             -L$(LIB_COMPILER_RT_PATH) \
             -L$(SOURCE_ROOT)/lib$(BASE_NAME)
 
@@ -126,7 +118,6 @@ $(BUILD_DIR)/$(NAME).elf: $(BUILD_DIR) $(OBJECTS_NORMAL) $(LIB_COMPILER_RT_BUILT
 	$(LD) $(LD_FLAGS) -l$(NAME) -o $@ $(OBJECTS_NORMAL)
 
 $(NAME).nso: $(BUILD_DIR)/$(NAME).elf
-	echo $(CURDIR)
 	elf2nso  $< $@
 
 clean-standalone:
